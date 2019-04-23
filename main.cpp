@@ -5,31 +5,71 @@ using namespace std;
 
 bool legv8Flag[false, false, false, false];
 
-void ADD(bool typeR, long long int &source1, long long int &source2, long long int immediate, long long int &destination, bool flag){
+void SetFlags(bool sub, long long int source1, long long int source2, long long int result){
+    long long int _source2;
+    if(sub)  _source2 = -source2;
+    else _source2 = source2;
+    //NEGATIVE
+    legv8Flag[0] = result < 0;
+    //ZERO
+    legv8Flag[1] = result == 0;
+    //OVERFLOW
+    if(source1 > 0 && _source2 > 0 && result < 0)
+        legv8Flag[2] = true;
+    else
+        legv8Flag[2] = source1 < 0 && _source2 < 0 && result > 0;
+    //CARRY
+    if(source1 < 0 && _source2 < 0)
+        legv8Flag[3] = true;
+    else
+        legv8Flag[3] = (source1 < 0 || _source2 < 0) && result >= 0;
+}
+
+
+void ADD(bool typeR, long long int &source1, long long int &source2, unsigned long long int immediate, long long int &destination, bool flag){
     if(typeR){
         destination = source1 + source2;
+        if(flag)
+            SetFlags(false, source1, source2, destination);
     }else{
         destination = source1 + immediate;
+        if(flag)
+            SetFlags(false, source1, immediate, destination);
     }
+
 }
 
-void SUB(bool typeR, long long int &source1, long long int &source2, long long int immediate, long long int &destination, bool flag){
+void SUB(bool typeR, long long int &source1, long long int &source2, unsigned long long int immediate, long long int &destination, bool flag){
     if(typeR){
         destination = source1 - source2;
+        if(flag)
+            SetFlags(true, source1, source2, destination);
     }else{
         destination = source1 - immediate;
+        if(flag)
+            SetFlags(true, source1, immediate, destination);
     }
 }
 
-void AND(bool typeR, long long int &source1, long long int &source2, long long int immediate, long long int &destination, bool flag){
+void AND(bool typeR, long long int &source1, long long int &source2, unsigned long long int immediate, long long int &destination, bool flag){
     if(typeR){
         destination = source1 & source2;
     }else{
         destination = source1 & immediate;
     }
+    if(flag){
+        //NEGATIVE
+        legv8Flag[0] = destination < 0;
+        //ZERO
+        legv8Flag[1] = destination == 0;
+        //OVERFLOW
+        legv8Flag[2] = false;
+        //CARRY
+        legv8Flag[3] = false;
+    }
 }
 
-void ORR(bool typeR, long long int &source1, long long int &source2, long long int immediate, long long int &destination, bool flag){
+void ORR(bool typeR, long long int &source1, long long int &source2, unsigned long long int immediate, long long int &destination){
     if(typeR){
         destination = source1 | source2;
     }else{
@@ -37,7 +77,7 @@ void ORR(bool typeR, long long int &source1, long long int &source2, long long i
     }
 }
 
-void EOR(bool typeR, long long int &source1, long long int &source2, long long int immediate, long long int &destination, bool flag){
+void EOR(bool typeR, long long int &source1, long long int &source2, unsigned long long int immediate, long long int &destination){
     if(typeR){
         destination = source1 ^ source2;
     }else{
@@ -45,11 +85,11 @@ void EOR(bool typeR, long long int &source1, long long int &source2, long long i
     }
 }
 
-void LSL(long long int &source1, long long int shamt, long long int &destination){
+void LSL(long long int &source1, unsigned long long int shamt, long long int &destination){
     destination = source1 << shamt;
 }
 
-void LSR(long long int &source1, long long int shamt, long long int &destination){
+void LSR(long long int &source1, unsigned long long int shamt, long long int &destination){
     destination = source1 >> shamt;
 }
 
