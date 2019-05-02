@@ -1,9 +1,12 @@
 #include <iostream>
-#include <vector>
+#include "Instruction.h"
 
 using namespace std;
 
-bool legv8Flag[false, false, false, false];
+
+bool legv8Flag [4] = {false, false, false, false};
+vector<uint8_t> MEM(1000);
+
 
 void SetFlags(bool sub, long long int source1, long long int source2, long long int result){
     long long int _source2;
@@ -86,29 +89,70 @@ void EOR(bool typeR, long long int &source1, long long int &source2, unsigned lo
 }
 
 void LSL(long long int &source1, unsigned long long int shamt, long long int &destination){
-    destination = source1 << shamt;
+    unsigned long long int temp = source1;
+    destination = temp << shamt;
 }
 
 void LSR(long long int &source1, unsigned long long int shamt, long long int &destination){
-    destination = source1 >> shamt;
+    unsigned long long int temp = source1;
+    destination = temp >> shamt;
 }
 
 void STUR(int size, long long int &source1, long long int addr, long long int &destination){
-
+    uint8_t eightBit = 0;
+    for(int i = 0; i < size; i++){
+        eightBit = destination >> 8*i;
+        MEM[source1 + addr + i] = eightBit;
+    }
 }
 
 void LDUR(int size, long long int &source1, long long int addr, long long int &destination){
+    destination = 0;
+    unsigned long long int tempEight = 0;
+    unsigned long long int temp = 0;
+    for(int i = 0; i < size; i++){
+        tempEight = MEM[source1 + addr + i];
+        temp += tempEight << (8*i);
+    }
+    destination = temp;
+}
+
+void CheckInstruction(Instruction i, vector<long long int> RFILE){
+    if (i.type == "ADD")
+        ADD(true, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[2]], false);
+    else if(i.type == "ADDS")
+        ADD(true, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[2]], true);
+    else if(i.type == "ADDI")
+        ADD(false, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[1]], false);
+    else if(i.type == "ADDIS")
+        ADD(false, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[1]], true);
+    else if(i.type == "SUB")
+        SUB(true, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[2]], false);
+    else if(i.type == "SUBS")
+        SUB(true, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[2]], true);
+    else if(i.type == "SUBI")
+        SUB(false, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[1]], false);
+    else if(i.type == "SUBIS")
+        SUB(false, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[1]], true);
+    else if(i.type == "AND")
+        AND(true, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[2]], false);
+    else if(i.type == "ANDS")
+        AND(true, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[2]], true);
+    else if(i.type == "ANDI")
+        AND(false, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[1]], false);
+    else if(i.type == "ANDIS")
+        AND(false, RFILE[i.regs[0]], RFILE[i.regs[1]], i.imed, RFILE[i.regs[1]], true);
 
 }
 
-
 int main() {
-    vector<long long int> RFILE;
-    vector<int8_t> MEM;
-    RFILE.push_back(20);
-    RFILE.push_back(50);
-    RFILE.push_back(0);
-    ADD(true, RFILE[0], RFILE[0], 0, RFILE[2], false);
-    std::cout << "Hello, World!" << std::endl;
+    vector<long long int> RFILE(31);
+    RFILE[0] = 0x00000000FFFFFF01;  RFILE[1] = 50;
+    STUR(8, RFILE[2], 0, RFILE[0]);
+    for(int i = 0; i < 1000; i++){
+        cout << int(MEM[i]) << std::endl;
+    }
+    LDUR(8, RFILE[2], 0, RFILE[1]);
+    cout << hex << RFILE[1] << std::endl;
     return 0;
 }
