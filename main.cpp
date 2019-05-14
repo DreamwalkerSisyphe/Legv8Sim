@@ -9,9 +9,12 @@ using namespace std;
 
 
 bool legv8Flag [4] = {false, false, false, false}; // [Negative, Zero, Overflow, Carry]
-vector<uint8_t> MEM(1000);
+vector<uint8_t> MEM(10240);
 vector<string> types{"ADD", "ADDS", "ADDI", "ADDIS", "SUB", "SUBS", "SUBI", "SUBIS",
-                     "LDUR", "LDURH", "LDURB", "STUR", "STURH", "STURB", "AND", "ANDS", "ANDI", "ANDIS"}; // Put all instruction types here so they can easily be checked
+                     "LDUR", "LDURH", "LDURB", "STUR", "STURH", "STURB", "AND", "ANDS", "ANDI", "ANDIS",
+                     "CBZ", "CBNZ", "B", "BL", "BR", "B.EQ", "B.NE", "B.HS", "B.LO", "B.MI",
+                    "B.PL", "B.VS", "B.HI", "B.LS", "B.GE", "B.LT", "B.GT", "B.LE",
+                    "LSL", "LSR", "EOR", "EORI", "ORR", "ORRI", "LDURW", "STURW"}; // Put all instruction types here so they can easily be checked
 
 
 
@@ -130,10 +133,33 @@ bool BranchCond(string cond){
         return legv8Flag[1] == 1;
     else if(cond == "NE")
         return legv8Flag[1] == 0;
-    //Add rest
+    else if(cond == "HS")
+        return legv8Flag[3] == 1;
+    else if(cond == "LO")
+        return legv8Flag[3] == 0;
+    else if(cond == "MI")
+        return legv8Flag[0] == 1;
+    else if(cond == "PL")
+        return legv8Flag[0] == 0;
+    else if(cond == "VS")
+        return legv8Flag[2] == 1;
+    else if(cond == "VC")
+        return legv8Flag[2] == 0;
+    else if(cond == "HI")
+        return legv8Flag[3] == 1 && legv8Flag[1] == 0;
+    else if(cond == "LS")
+        return !(legv8Flag[3] == 1 && legv8Flag[1] == 0);
+    else if(cond == "GE")
+        return legv8Flag[0] == legv8Flag[2];
+    else if(cond == "LT")
+        return legv8Flag[0] != legv8Flag[2];
+    else if(cond == "GT")
+        return legv8Flag[1] == 0 && legv8Flag[0] == legv8Flag[2];
+    else if(cond == "LE")
+        return !(legv8Flag[1] == 0 && legv8Flag[0] == legv8Flag[2]);
 }
 
-void CheckInstruction(Instruction* i, vector<long long int> RFILE, long long int &pc){
+void CheckInstruction(Instruction* i, vector<long long int> &RFILE, long long int &pc){
     if (i->type == "ADD")
         ADD(true, RFILE[i->regs[1]], RFILE[i->regs[2]], i->imed, RFILE[i->regs[0]], false);
     else if(i->type == "ADDS")
@@ -159,10 +185,10 @@ void CheckInstruction(Instruction* i, vector<long long int> RFILE, long long int
     else if(i->type == "ANDIS")
         AND(false, RFILE[i->regs[1]], RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]], true);
     else if(i->type == "B")
-        pc = i->labl;
+        pc = i->labl-1;
     else if(i->type == "BL"){
         RFILE[30] = pc;
-        pc = i->labl;
+        pc = i->labl-1;
     } else if(i->type == "BR")
         pc = RFILE[30];
     else if(i->type.substr(0,2) == "B.")
@@ -187,107 +213,23 @@ void CheckInstruction(Instruction* i, vector<long long int> RFILE, long long int
         ORR(true, RFILE[i->regs[1]], RFILE[i->regs[2]], i->imed, RFILE[i->regs[0]]);
     else if(i->type == "LDUR")
         LDUR(8,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "LDURW")
+        LDUR(4,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "LDURH")
+        LDUR(2,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "LDURB")
+        LDUR(1,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
     else if(i->type == "STUR")
         STUR(8,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "STURW")
+        STUR(4,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "STURH")
+        STUR(2,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "STURB")
+        STUR(1,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
 
 }
 
 int main(int argc, char* argv[]) {
-    vector<long long int> RFILE(32);
-    /*RFILE[0] = 0x00000000FFFFFF01;  RFILE[1] = 50;
-    STUR(8, RFILE[2], 0, RFILE[0]);
-    for(int i = 0; i < 1000; i++){
-        cout << int(MEM[i]) << std::endl;
-    }
-    LDUR(8, RFILE[2], 0, RFILE[1]);
-    cout << hex << RFILE[1] << std::endl;*/
-    fstream tempfile;
-    tempfile.open(argv[1]);
-    string line;
-    int lineNum = 0;
-    map<string, int> labels;
-    while(getline(tempfile, line)){ //Searches for and stores all labels.
-        lineNum++;
-        stringstream ss;
-        ss << line;
-        string word;
-        ss >> word;
-        if(word.back() == ':'){
-            word.pop_back();
-            labels[word] = lineNum;
-        }
-    }
-    lineNum = 0;
-    tempfile.close();
-    fstream file;
-    file.open(argv[1]); //Reopen the file in a new fstream so that the buffer resets back to the beginning.
-    vector<Instruction*> program;
-    while(getline(file, line)){ //Parsing each instruction
-        lineNum++;
-        stringstream ss;
-        ss << line;
-        string type;
-        vector<int> regs;
-        long long int imed = 0;
-        int lblIndex = 0;
-        while(!ss.eof()){
-            string word;
-            ss >> word;
-            if(word.back() == ':') //Skip label markings.
-                continue;
-            //Sanitize the input
-            if((word.back() == ',') || (word.back() == ']'))
-                word.pop_back();
-            if(word.front() == '[')
-                word = word.substr(1, word.size()-1);
-            if(find(types.begin(), types.end(), word) != types.end()){ //Checks to see if its in the list of valid instruction types.
-                type = word;
-                continue;
-            }
-            if(word.front() == '#'){ //Checks if its an imediate or address offse.
-                word = word.substr(1, word.size()-1);
-                imed = (long long int)stoi(word);
-                continue;
-            }
-            if(labels.find(word) != labels.end()){ //Checks to see if its a label;
-                lblIndex = labels[word];
-                continue;
-            }
-            //Handle all special register names first. 
-            if(word == "SP"){
-                regs.push_back(28);
-                continue;
-            }
-            if(word == "FP"){
-                regs.push_back(29);
-                continue;
-            }
-            if(word == "LR"){
-                regs.push_back(30);
-                continue;
-            }
-            if(word == "XZR"){
-                regs.push_back(31);
-                continue;
-            }
-            if(word.front() == 'X'){ //Check if its a register.
-                word = word.substr(1, word.size()-1);
-                regs.push_back(stoi(word));
-            }
-        }
-        Instruction* I = new Instruction(type, regs, imed, lblIndex);
-        program.push_back(I);
-    }
 
-
-    long long int pc = 0;
-    while (pc < program.size()) {
-
-        CheckInstruction(program[pc], RFILE, pc); //Execute instruction.
-        RFILE[31] = 0; //Reset XZR to 0.
-        pc++;
-    }
-
-
-    return 0;
 }
