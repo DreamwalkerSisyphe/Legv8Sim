@@ -345,6 +345,8 @@ int main() {
     }
     string stepMode = input;
     long long int pc = 0;
+    RFILE[28] = 10240;
+    RFILE[30] = program.size();
     while (pc < program.size()) {
         bool cont = true;
         if(stepMode == "2"){
