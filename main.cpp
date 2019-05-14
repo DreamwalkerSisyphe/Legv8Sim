@@ -230,6 +230,162 @@ void CheckInstruction(Instruction* i, vector<long long int> &RFILE, long long in
 
 }
 
-int main(int argc, char* argv[]) {
+void outputMem(ostream &output, vector<long long int> RFILE, int memType = 0, int value = NULL){
+    if(memType == 0){
+        output << "RFILE contents: " << endl;
+        for(int i = 0; i < RFILE.size(); i++){
+                output << "X" << i << ": " << RFILE[i] << endl;
+        }
+        output << "MEM contents: " << endl;
+        for(int i = 0; i < MEM.size(); i++){
+            if(MEM[i] != NULL)
+                output << "Byte " << i << ": " << MEM[i] << endl;
+        }
+    }
+    else if(memType == 1){
+        output << "X" << value << ": " << RFILE[value] << endl;
+    }
+    else if (memType == 2)
+    {
+        output << "Byte " << value << ": " << MEM[value] << endl;
+    }
+    
+}
+
+int main() {
+    vector<long long int> RFILE(32);
+    cout << "Enter the name of the instruction file: ";
+    string input;
+    getline(cin, input);
+    string filename = input;
+    fstream tempfile;
+    tempfile.open(filename);
+    string line;
+    int lineNum = 0;
+    map<string, int> labels;
+    while(getline(tempfile, line)){ //Searches for and stores all labels.
+        stringstream ss;
+        ss << line;
+        string word;
+        ss >> word;
+        if(word.back() == ':'){
+            word.pop_back();
+            labels[word] = lineNum;
+        }
+        lineNum++;
+    }
+    lineNum = 0;
+    tempfile.close();
+    fstream file;
+    file.open(filename); //Reopen the file in a new fstream so that the buffer resets back to the beginning.
+    vector<Instruction*> program;
+    while(getline(file, line)){ //Parsing each instruction
+        lineNum++;
+        stringstream ss;
+        ss << line;
+        string type;
+        vector<int> regs;
+        long long int imed = 0;
+        int lblIndex = 0;
+        while(!ss.eof()){
+            string word;
+            ss >> word;
+            if(word.back() == ':') //Skip label markings.
+                continue;
+            //Sanitize the input
+            if((word.back() == ',') || (word.back() == ']'))
+                word.pop_back();
+            if(word.front() == '[')
+                word = word.substr(1, word.size()-1);
+            if(find(types.begin(), types.end(), word) != types.end()){ //Checks to see if its in the list of valid instruction types.
+                type = word;
+                continue;
+            }
+            if(word.front() == '#'){ //Checks if its an imediate or address offse.
+                word = word.substr(1, word.size()-1);
+                imed = (long long int)stoi(word);
+                continue;
+            }
+            if(labels.find(word) != labels.end()){ //Checks to see if its a label;
+                lblIndex = labels[word];
+                continue;
+            }
+            //Handle all special register names first. 
+            if(word == "SP"){
+                regs.push_back(28);
+                continue;
+            }
+            if(word == "FP"){
+                regs.push_back(29);
+                continue;
+            }
+            if(word == "LR"){
+                regs.push_back(30);
+                continue;
+            }
+            if(word == "XZR"){
+                regs.push_back(31);
+                continue;
+            }
+            if(word.front() == 'X'){ //Check if its a register.
+                word = word.substr(1, word.size()-1);
+                regs.push_back(stoi(word));
+            }
+        }
+        Instruction* I = new Instruction(type, regs, imed, lblIndex);
+        program.push_back(I);
+    }
+    file.close();
+    cout << "Enter 1 to run, or 2 to step: ";
+    getline(cin, input);
+    while (!((input == "1") || (input == "2")))
+    {
+        cout << "Invalid input. Enter 1 or 2: ";
+        getline(cin, input);
+    }
+    string stepMode = input;
+    long long int pc = 0;
+    while (pc < program.size()) {
+        bool cont = true;
+        if(stepMode == "2"){
+            string optionMode = "";
+            while((optionMode != "1") || cont){
+                cout << "Enter 1 to execute next instruction, 2 to show memory contents, and 3 to stop: ";
+                getline(cin, optionMode);
+                while (!((optionMode == "1") || (optionMode == "2") || (optionMode == "3"))){
+                    cout << "Invalid input. Enter 1, 2, or 3: ";
+                    getline(cin, optionMode);
+                }
+                if(optionMode == "1")
+                    cout << "Executing " << program[pc]->type << "instruction." << endl;
+                else if(optionMode == "2"){
+                    cout << "Enter 1 for RFILE, or 2 for MEM: ";
+                    getline(cin, input);
+                    string memChoice = input;
+                    while(!((memChoice == "1") || (memChoice == "2"))){
+                        cout << "Invalid input. Enter 1 or 2: ";
+                        getline(cin, input);
+                        memChoice = input;
+                    }
+                    cout << "Enter the " << ((memChoice == "1") ? "register" : "byte") << " number: ";
+                    getline(cin, input);
+                    int value = stoi(input);
+                    outputMem(cout, RFILE, stoi(memChoice), value);
+                }
+                else if(optionMode == "3")
+                    cont = false;
+            }
+        }
+        if(!cont)
+            break;
+        CheckInstruction(program[pc], RFILE, pc); //Execute instruction.
+        RFILE[31] = 0; //Reset XZR to 0.
+        pc++;
+    }
+    cout << "Instruction execution has ended." << endl;
+    ofstream output;
+    output.open("output.txt");
+    outputMem(output, RFILE);
+    cout << "Wrote memory contents to output.txt";
 
 }
