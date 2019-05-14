@@ -9,9 +9,12 @@ using namespace std;
 
 
 bool legv8Flag [4] = {false, false, false, false}; // [Negative, Zero, Overflow, Carry]
-vector<uint8_t> MEM(1000);
+vector<uint8_t> MEM(10240);
 vector<string> types{"ADD", "ADDS", "ADDI", "ADDIS", "SUB", "SUBS", "SUBI", "SUBIS",
-                     "LDUR", "LDURH", "LDURB", "STUR", "STURH", "STURB", "AND", "ANDS", "ANDI", "ANDIS"}; // Put all instruction types here so they can easily be checked
+                     "LDUR", "LDURH", "LDURB", "STUR", "STURH", "STURB", "AND", "ANDS", "ANDI", "ANDIS",
+                     "CBZ", "CBNZ", "B", "BL", "BR", "B.EQ", "B.NE", "B.HS", "B.LO", "B.MI",
+                    "B.PL", "B.VS", "B.HI", "B.LS", "B.GE", "B.LT", "B.GT", "B.LE",
+                    "LSL", "LSR", "EOR", "EORI", "ORR", "ORRI", "LDURW", "STURW"}; // Put all instruction types here so they can easily be checked
 
 
 
@@ -130,10 +133,33 @@ bool BranchCond(string cond){
         return legv8Flag[1] == 1;
     else if(cond == "NE")
         return legv8Flag[1] == 0;
-    //Add rest
+    else if(cond == "HS")
+        return legv8Flag[3] == 1;
+    else if(cond == "LO")
+        return legv8Flag[3] == 0;
+    else if(cond == "MI")
+        return legv8Flag[0] == 1;
+    else if(cond == "PL")
+        return legv8Flag[0] == 0;
+    else if(cond == "VS")
+        return legv8Flag[2] == 1;
+    else if(cond == "VC")
+        return legv8Flag[2] == 0;
+    else if(cond == "HI")
+        return legv8Flag[3] == 1 && legv8Flag[1] == 0;
+    else if(cond == "LS")
+        return !(legv8Flag[3] == 1 && legv8Flag[1] == 0);
+    else if(cond == "GE")
+        return legv8Flag[0] == legv8Flag[2];
+    else if(cond == "LT")
+        return legv8Flag[0] != legv8Flag[2];
+    else if(cond == "GT")
+        return legv8Flag[1] == 0 && legv8Flag[0] == legv8Flag[2];
+    else if(cond == "LE")
+        return !(legv8Flag[1] == 0 && legv8Flag[0] == legv8Flag[2]);
 }
 
-void CheckInstruction(Instruction* i, vector<long long int> RFILE, long long int &pc){
+void CheckInstruction(Instruction* i, vector<long long int> &RFILE, long long int &pc){
     if (i->type == "ADD")
         ADD(true, RFILE[i->regs[1]], RFILE[i->regs[2]], i->imed, RFILE[i->regs[0]], false);
     else if(i->type == "ADDS")
@@ -159,10 +185,10 @@ void CheckInstruction(Instruction* i, vector<long long int> RFILE, long long int
     else if(i->type == "ANDIS")
         AND(false, RFILE[i->regs[1]], RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]], true);
     else if(i->type == "B")
-        pc = i->labl;
+        pc = i->labl-1;
     else if(i->type == "BL"){
         RFILE[30] = pc;
-        pc = i->labl;
+        pc = i->labl-1;
     } else if(i->type == "BR")
         pc = RFILE[30];
     else if(i->type.substr(0,2) == "B.")
@@ -187,8 +213,20 @@ void CheckInstruction(Instruction* i, vector<long long int> RFILE, long long int
         ORR(true, RFILE[i->regs[1]], RFILE[i->regs[2]], i->imed, RFILE[i->regs[0]]);
     else if(i->type == "LDUR")
         LDUR(8,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "LDURW")
+        LDUR(4,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "LDURH")
+        LDUR(2,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "LDURB")
+        LDUR(1,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
     else if(i->type == "STUR")
         STUR(8,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "STURW")
+        STUR(4,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "STURH")
+        STUR(2,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "STURB")
+        STUR(1,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
 
 }
 
@@ -350,5 +388,4 @@ int main() {
     outputMem(output, RFILE);
     cout << "Wrote memory contents to output.txt";
 
-    return 0;
 }
