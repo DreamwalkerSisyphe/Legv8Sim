@@ -192,16 +192,26 @@ void CheckInstruction(Instruction* i, vector<long long int> RFILE, long long int
 
 }
 
-void outputMem(ostream &output, vector<long long int> RFILE){
-    output << "RFILE contents: " << endl;
-    for(int i = 0; i < RFILE.size(); i++){
-            cout << "X" << i << ": " << RFILE[i] << endl;
+void outputMem(ostream &output, vector<long long int> RFILE, int memType = 0, int value = NULL){
+    if(memType == 0){
+        output << "RFILE contents: " << endl;
+        for(int i = 0; i < RFILE.size(); i++){
+                output << "X" << i << ": " << RFILE[i] << endl;
+        }
+        output << "MEM contents: " << endl;
+        for(int i = 0; i < MEM.size(); i++){
+            if(MEM[i] != NULL)
+                output << "Byte " << i << ": " << MEM[i] << endl;
+        }
     }
-    output << "MEM contents: " << endl;
-    for(int i = 0; i < MEM.size(); i++){
-        if(MEM[i] != NULL)
-            cout << "Byte " << i << ": " << MEM[i] << endl;
+    else if(memType == 1){
+        output << "X" << value << ": " << RFILE[value] << endl;
     }
+    else if (memType == 2)
+    {
+        output << "Byte " << value << ": " << MEM[value] << endl;
+    }
+    
 }
 
 int main() {
@@ -298,20 +308,38 @@ int main() {
     string stepMode = input;
     long long int pc = 0;
     while (pc < program.size()) {
+        bool cont = true;
         if(stepMode == "2"){
-            cout << "Enter 1 to execute next instruction, 2 to show memory contents, and 3 to stop: ";
-            getline(cin, input);
-            while (!((input == "1") || (input == "2") || (input == "3"))){
-                cout << "Invalid input. Enter 1, 2, or 3: ";
-                getline(cin, input);
+            string optionMode = "";
+            while((optionMode != "1") || cont){
+                cout << "Enter 1 to execute next instruction, 2 to show memory contents, and 3 to stop: ";
+                getline(cin, optionMode);
+                while (!((optionMode == "1") || (optionMode == "2") || (optionMode == "3"))){
+                    cout << "Invalid input. Enter 1, 2, or 3: ";
+                    getline(cin, optionMode);
+                }
+                if(optionMode == "1")
+                    cout << "Executing " << program[pc]->type << "instruction." << endl;
+                else if(optionMode == "2"){
+                    cout << "Enter 1 for RFILE, or 2 for MEM: ";
+                    getline(cin, input);
+                    string memChoice = input;
+                    while(!((memChoice == "1") || (memChoice == "2"))){
+                        cout << "Invalid input. Enter 1 or 2: ";
+                        getline(cin, input);
+                        memChoice = input;
+                    }
+                    cout << "Enter the " << ((memChoice == "1") ? "register" : "byte") << " number: ";
+                    getline(cin, input);
+                    int value = stoi(input);
+                    outputMem(cout, RFILE, stoi(memChoice), value);
+                }
+                else if(optionMode == "3")
+                    cont = false;
             }
-            if(input == "1")
-                cout << "Executing " << program[pc]->type << "instruction." << endl;
-            else if(input == "2")
-                outputMem(cout, RFILE);
-            else if(input == "3");
-                break;
         }
+        if(!cont)
+            break;
         CheckInstruction(program[pc], RFILE, pc); //Execute instruction.
         RFILE[31] = 0; //Reset XZR to 0.
         pc++;
