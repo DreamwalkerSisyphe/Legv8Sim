@@ -204,13 +204,13 @@ void CheckInstruction(Instruction* i, vector<long long int> &RFILE, long long in
     else if(i->type == "LSR")
         LSR(RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
     else if(i->type == "EOR")
-        EOR(false, RFILE[i->regs[1]], RFILE[i->regs[2]], i->imed, RFILE[i->regs[0]]);
-    else if(i->type == "EORI")
         EOR(true, RFILE[i->regs[1]], RFILE[i->regs[2]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "EORI")
+        EOR(false, RFILE[i->regs[1]], RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
     else if(i->type == "ORR")
-        ORR(false, RFILE[i->regs[1]], RFILE[i->regs[2]], i->imed, RFILE[i->regs[0]]);
-    else if(i->type == "ORRI")
         ORR(true, RFILE[i->regs[1]], RFILE[i->regs[2]], i->imed, RFILE[i->regs[0]]);
+    else if(i->type == "ORRI")
+        ORR(false, RFILE[i->regs[1]], RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
     else if(i->type == "LDUR")
         LDUR(8,RFILE[i->regs[1]], i->imed, RFILE[i->regs[0]]);
     else if(i->type == "LDURW")
