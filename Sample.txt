@@ -1,8 +1,6 @@
 ADDI X0, XZR, #5
-FACT: SUBIS XZR, X0 #1
-    B.GE L1
-    ADD X2, X1, XZR
-    BR LR
-L1: ADD X1, X1, X0
-    SUBI X0, X0, #1
-    B FACT
+LSL X1, X0, #2
+LSL X3, X0, #5
+LSR X4, X3, #2
+EORI X2, X4, #41
+ORRI X5, X4, #41
