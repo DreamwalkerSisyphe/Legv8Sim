@@ -9,7 +9,7 @@ using namespace std;
 
 
 bool legv8Flag [4] = {false, false, false, false}; // [Negative, Zero, Overflow, Carry]
-vector<uint8_t> MEM(10240);
+vector<uint8_t> MEM(1000000); // About 1MB of Memory
 vector<string> types{"ADD", "ADDS", "ADDI", "ADDIS", "SUB", "SUBS", "SUBI", "SUBIS",
                      "LDUR", "LDURH", "LDURB", "STUR", "STURH", "STURB", "AND", "ANDS", "ANDI", "ANDIS",
                      "CBZ", "CBNZ", "B", "BL", "BR", "B.EQ", "B.NE", "B.HS", "B.LO", "B.MI",
@@ -113,7 +113,7 @@ void STUR(int size, long long int &source1, long long int addr, long long int &d
     uint8_t eightBit = 0;
     for(int i = 0; i < size; i++){
         eightBit = destination >> 8*i;
-        MEM[source1 + addr + i] = eightBit;
+        MEM[source1 + addr - i] = eightBit;
     }
 }
 
@@ -122,7 +122,7 @@ void LDUR(int size, long long int &source1, long long int addr, long long int &d
     unsigned long long int tempEight = 0;
     unsigned long long int temp = 0;
     for(int i = 0; i < size; i++){
-        tempEight = MEM[source1 + addr + i];
+        tempEight = MEM[source1 + addr - i];
         temp += tempEight << (8*i);
     }
     destination = temp;
@@ -239,7 +239,7 @@ void outputMem(ostream &output, vector<long long int> RFILE, int memType = 0, in
         output << "MEM contents: " << endl;
         for(int i = 0; i < MEM.size(); i++){
             if(MEM[i] != NULL)
-                output << "Byte " << i << ": " << MEM[i] << endl;
+                output << "Byte " << i << ": " << int(MEM[i]) << endl;
         }
     }
     else if(memType == 1){
@@ -345,13 +345,14 @@ int main() {
     }
     string stepMode = input;
     long long int pc = 0;
-    RFILE[28] = 10240;
+    RFILE[28] = MEM.size() - 1;
     RFILE[30] = program.size();
-    while (pc < program.size()) {
+    string optionMode;
+    while (pc < program.size() && optionMode != "3") {
         bool cont = true;
         if(stepMode == "2"){
-            string optionMode = "";
-            while((optionMode != "1") || cont){
+            optionMode = "";
+            while((optionMode != "1") && cont){
                 cout << "Enter 1 to execute next instruction, 2 to show memory contents, and 3 to stop: ";
                 getline(cin, optionMode);
                 while (!((optionMode == "1") || (optionMode == "2") || (optionMode == "3"))){
@@ -359,7 +360,7 @@ int main() {
                     getline(cin, optionMode);
                 }
                 if(optionMode == "1")
-                    cout << "Executing " << program[pc]->type << "instruction." << endl;
+                    cout << "Executing " << program[pc]->type << " instruction." << endl;
                 else if(optionMode == "2"){
                     cout << "Enter 1 for RFILE, or 2 for MEM: ";
                     getline(cin, input);
